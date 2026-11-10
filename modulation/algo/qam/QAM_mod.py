@@ -175,9 +175,3 @@ Returns:
     
     return signal_I - signal_Q
 
-message = "Bonjour"
-
-
-binaire = ''.join(format(ord(c), '08b') for c in message)
-print(binaire)
-print(Divide_qam(binaire, 16))
