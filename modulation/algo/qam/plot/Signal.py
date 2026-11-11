@@ -2,7 +2,6 @@ import numpy as np
 import sys
 from pathlib import Path
 import matplotlib.pyplot as plt
-import sounddevice as sd
 
 
 dossier_racine = Path(__file__).resolve().parents[4]
@@ -12,18 +11,29 @@ sys.path.append(str(dossier_racine))
 import modulation.algo.qam.QAM_mod as QAM_mod
 
 
-f_ech = 48000 
 
+def Modulation(f_ech : int, message_bin : str, F_porteuse : float, QAM_number : int, t_symbol : float, display : bool, trame_IQ : list = [])-> list:
+    """Module un message binaire en un signal QAM et calcule sa durée totale.
 
-def Modulation(f_ech : int, message_bin : str, F_porteuse : float, QAM_number : int, t_symbol : float, display : bool)-> list:
-    """
-    Modulation du signal avec la QAM retourne le signal Modulé
-    f_ech = fréquence d'échantillonage
-    message_bin : c'est le message bianire
-    F_porteuse : c'est la fréquence de la porteuse
-    QAM_numver : c'est le numéro de la QAM
-    t_symbol : c'est la durée d'un symbole
-    display : c'est un bool qui permet l'affichage des graphes 
+    Découpe le message binaire en symboles, génère les composantes I et Q 
+    associées (en ajoutant éventuellement une trame de synchronisation en tête), 
+    puis synthétise le signal modulé sur une porteuse à la fréquence d'échantillonnage 
+    donnée. Affiche optionnellement le signal continu simulé et le signal échantillonné.
+
+    Args:
+        - f_ech (int): Fréquence d'échantillonnage du signal en Hertz (Hz).
+        - message_bin (str): Message binaire à moduler (chaîne de '0' et de '1').
+        - F_porteuse (float): Fréquence de la porteuse en Hertz (Hz).
+        - QAM_number (int): Ordre de la modulation QAM (ex: 4, 16, 64).
+        t_symbol (float): Durée d'un symbole en secondes (s).
+        display (bool): Si True, affiche les graphiques du signal modulé (continu et échantillonné).
+        trame_IQ (list, optional): Coordonnées [I, Q] d'une trame d'en-tête ou de 
+            synchronisation à insérer au début du signal. Par défaut à [].
+
+    Returns:
+        tuple[np.ndarray, float]: Un tuple contenant :
+            - message_mod_ech (np.ndarray): Le signal modulé et échantillonné.
+            - time_stop (float): La durée totale estimée du message en secondes (s).
     """
 
     divide_message, taille = QAM_mod.Divide_qam(message_bin, QAM_number)
@@ -39,6 +49,11 @@ def Modulation(f_ech : int, message_bin : str, F_porteuse : float, QAM_number : 
     
     
     signal_IQ = []
+    if len(trame_IQ[0]) != 0:
+        signal_IQ.append(trame_IQ[0])
+        signal_IQ.append(trame_IQ[1])
+
+
     for i in divide_message:
         signal_IQ.append(QAM_mod.Transform(i, QAM_number))
 
