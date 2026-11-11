@@ -11,8 +11,7 @@ dossier_racine = Path(__file__).resolve().parents[4]
 sys.path.append(str(dossier_racine))
 
 
-# 3. Importez votre fonction (adaptez le nom du fichier et de la fonction)
-# Exemple si la fonction Modulation est dans modulation/algo/qam/plot/Signal.py :
+
 from modulation.algo.qam import QAM_mod as Mod
 from modulation.algo.qam.plot import Signal as Si
 
@@ -65,7 +64,7 @@ def Demodulation(message : str, freq_porteuse : float , t_symbol : float, QAM_nu
     #t_symbol normalement 0.5
 
     
-    nb_niveaux = int(QAM_number**0.5)
+    nb_niveaux = int(QAM_number**0.5) -1
 
     i = []
     q = []
@@ -93,8 +92,8 @@ def Demodulation(message : str, freq_porteuse : float , t_symbol : float, QAM_nu
     i_filtre = signal.filtfilt(b, a, i)
     q_filtre = signal.filtfilt(b, a, q)
 
-    i_filtre = (i_filtre/abs(max(i_filtre)))*nb_niveaux
-    q_filtre = (q_filtre/abs(max(q_filtre)))*nb_niveaux
+    i_filtre = (i_filtre/np.max(abs(i_filtre)))*nb_niveaux
+    q_filtre = (q_filtre/np.max(abs(q_filtre)))*nb_niveaux
 
     return i_filtre, q_filtre
 
@@ -115,29 +114,62 @@ def Associate(QAM_number : int) -> dict[tuple[int, int], str]:
 
     associate = {}
     for incr in range(QAM_number):
-        bits_str = format(incr, "0"+ m.log2(QAM_number) + "b")
+        bits_str = format(incr, "0"+ str(int(m.log2(QAM_number))) + "b")
         i, q = Mod.Transform(bits_str, QAM_number)
         associate[i,q] = bits_str
     return associate
 
-def Recuperation(i : list, q : list , QAM_number : int) -> str:
-    """A partir des valeurs en phase et en quadrature on récupère les valeurs binaire correspondates
+def Recuperation(i : list, q : list , QAM_number : int, f_ech : float, t_symbol : float, duree_message : float ) -> str:
+    """A partir des valeurs en phase et en quadrature on récupère les valeurs binaire correspondates du signal contenant les données.
+    Ce signal ne doit plus contenir la trame de début et de fin. 
 
     Args : 
         - I (int) : Composante d'amplitude en phase (axe X)
         - Q (int) : Composante d'amplitude en quadrature (axe Y)
-        - QAM_number (int) : Nombre total d'états dans la constellation QAM.
+        - QAM_number (int) : Nombre total d'états dans la constellation QAM
+        - f_ech (float): fréquence d'échatillonage
+        - t_symbol (float) : durée d'un symbole
+        - duree_message (float) : durée du message
     
     Returns :
         - message (str) : messsage traduis
     """
     associate = Associate(QAM_number)
-    i_nom, q_nom = associate.keys()
+    
+
+    
+
+    taille_message = duree_message/t_symbol
+
+    i_mean = []
+    q_mean = []
+
+    ech_par_symbole = int(t_symbol * f_ech)
+    marge = int(ech_par_symbole * 0.1)
+
+    for incr in range(int(taille_message)):
+        debut = incr * ech_par_symbole + marge
+        fin = (incr + 1) * ech_par_symbole - marge
+        i_mean.append(round(mean(i[debut:fin])))
+        q_mean.append(round(mean(q[debut:fin])))
+
+    message = ""
+    for incr in range(len(i_mean)):
+        message= message + associate[i_mean[incr], q_mean[incr]]
+
+    return message
 
 
-    for incr in range(len(i)):
-        pass
-        # Utiliser start_find pour trouver le début et faire une moyenne pour détecter la valeur en phase et en quadrature
+
+
+
+def mean(value : list) -> float :
+    result = 0
+    for i in range(len(value)):
+        result = result + value[i]
+
+    return result/len(value)
+       
 
 def Start_find(message : list, lenght_barker : int , f_ech : float, t_symbol : float , QAM_number : int ):
     """Permet de détecter le début du message de la modulation en utilisant l'alogorithme de Barker. 
