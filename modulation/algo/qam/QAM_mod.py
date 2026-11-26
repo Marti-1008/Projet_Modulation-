@@ -144,7 +144,7 @@ def Phase(I : int, Q : int) -> float:
         return m.pi / 2 if Q > 0 else -m.pi / 2
 
     # Calcul de base de l'angle
-    angle = m.atan(Q / I)
+    angle = m.atan2(Q / I)
 
     # Correction selon le quadrant (si I < 0, on est à gauche de l'axe)
     if I < 0:
@@ -203,7 +203,7 @@ def Barker(Longeur : int) -> list:
         case 3:
             Code = [+1, +1, -1]
         case 4:
-            Code = [1, 1 -1, 1]
+            Code = [1, 1, -1, 1]
         case 5:
             Code = [1, 1, 1, -1, 1]
         case _:
@@ -212,7 +212,7 @@ def Barker(Longeur : int) -> list:
     return Code
 
 
-def Barker_IQ(Code : list, QAM_number : int) -> list[list[int], list[int]]:
+def Barker_IQ(Code : list, QAM_number : int) -> tuple[list[int], list[int]]:
     """Génère les valeurs en phase (I) et en quadrature (Q) à partir d'un code de Barker.
 
     Args :
